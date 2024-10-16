@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                             Scalper_24revers.mq5 |
+//|                                                   Scalper_24.mq5 |
 //|                                                              SSV |
 //|                                                   821654@mail.ru |
 //+------------------------------------------------------------------+
@@ -40,14 +40,16 @@ input int      per_K = 5;
 input int      per_D = 3;
 input int      slow = 3;
 input ENUM_TIMEFRAMES    time_stoh = PERIOD_M5;
-input int      periodMACDfast = 12;
-input int      periodMACDslow = 9;
-input int      periodMACDsignal = 26;
-input ENUM_TIMEFRAMES    time_macd = PERIOD_H1;
+int      periodMACDfast = 12;
+int      periodMACDslow = 9;
+int      periodMACDsignal = 26;
+input ENUM_TIMEFRAMES    time_macd_fast = PERIOD_M5;
+input ENUM_TIMEFRAMES    time_macd = PERIOD_D1;
 //input int      время_таймера = 1;
 ulong          m_magic = 555;             // magic number
 int            handle_iStochastic;      // variable for storing the handle of the iStochastic indicator
 int            handle_iMACD;
+int            handle_iMACD_fast;
 
 ENUM_ACCOUNT_MARGIN_MODE m_margin_mode;
 datetime Time_Old = 0;
@@ -109,6 +111,19 @@ int OnInit()
       //--- the indicator is stopped early
       return(INIT_FAILED);
      }
+     
+       handle_iMACD_fast = iMACD(NULL, time_macd_fast, periodMACDfast, periodMACDslow, periodMACDsignal, PRICE_CLOSE);
+//--- if the handle is not created
+   if(handle_iMACD == INVALID_HANDLE)
+     {
+      //--- tell about the failure and output the error code
+      PrintFormat("Failed to create handle of the iStochastic indicator for the symbol %s/%s, error code %d",
+                  Symbol(),
+                  EnumToString(Period()),
+                  GetLastError());
+      //--- the indicator is stopped early
+      return(INIT_FAILED);
+     }
 
 //---
 
@@ -151,7 +166,8 @@ void OnTick()
    bool allow_step_buy = true;
    bool allow_step_sell = true;
    bool allow_step = false;
-   string signal_MACD = SignalMACD();
+   string signal_MACD = SignalMACD(handle_iMACD);
+   string signal_MACD_fast = SignalMACD(handle_iMACD_fast);
    string signal_Stohastic = SignalStohastic();
 
    int count = 0;
@@ -231,7 +247,8 @@ void OnTick()
 
    if(Allow_trading && allow_step)
      {
-      if(signal_MACD == "buy" && SignalStohastic() == "buy" && allow_step_buy)
+   //   if(signal_MACD == "buy" && SignalStohastic() == "buy" && allow_step_buy)
+      if(signal_MACD == "buy" && signal_MACD_fast == "buy" && allow_step_buy)
         {
          // Print("buy");
          if(!m_trade.Buy(volum))//, NULL, 0, m_symbol.Bid() - SL * _Point, m_symbol.Ask() + TP * _Point))
@@ -247,7 +264,8 @@ void OnTick()
         }
 
       // if(Open_SELL == true && SignalStohastic() == "sell")
-      if(signal_MACD == "sell" && SignalStohastic() == "sell" && allow_step_sell)
+      //if(signal_MACD == "sell" && SignalStohastic() == "sell" && allow_step_sell)
+      if(signal_MACD == "sell" && signal_MACD_fast == "sell" && allow_step_sell)
         {
          //  string ts = bool
          if(!m_trade.Sell(volum))//, NULL, 0, m_symbol.Ask() + SL * _Point, m_symbol.Bid() - TP * _Point))
@@ -348,7 +366,7 @@ string SignalStohastic()
 //+------------------------------------------------------------------+
 //|    0 - MAIN_LINE, 1 - SIGNAL_LINE.                                                           |
 //+------------------------------------------------------------------+
-string SignalMACD()
+string SignalMACD(int handle)
   {
    double Macd_m[];
    double Macd_s[];
@@ -357,7 +375,7 @@ string SignalMACD()
 //--- reset error code
    ResetLastError();
 //--- fill a part of the iStochasticBuffer array with values from the indicator buffer that has 0 index
-   if(CopyBuffer(handle_iMACD, 0, 0, 10, Macd_m) < 0)
+   if(CopyBuffer(handle, 0, 0, 10, Macd_m) < 0)
      {
       //--- if the copying fails, tell the error code
       PrintFormat("Failed to copy data from the iMacd, error code %d", GetLastError());
@@ -365,7 +383,7 @@ string SignalMACD()
       return "null";
      }
 
-   if(CopyBuffer(handle_iMACD, 0, 1, 10, Macd_s) < 0)
+   if(CopyBuffer(handle, 0, 1, 10, Macd_s) < 0)
      {
       //--- if the copying fails, tell the error code
       PrintFormat("Failed to copy data from the iMacd, error code %d", GetLastError());
