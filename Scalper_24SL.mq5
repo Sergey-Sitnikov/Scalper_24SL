@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                   Scalper_24.mq5 |
+//|                                             Scalper_24revers.mq5 |
 //|                                                              SSV |
 //|                                                   821654@mail.ru |
 //+------------------------------------------------------------------+
@@ -33,6 +33,7 @@ input int   step_position = 250;
 input int   TP = 2000;
 input int   SL = 100;
 input double   volum = 0.01;
+input double   ratio = 2.0;
 //input double   risk = 1;
 input int      max_pos = 5;
 input int      per_K = 5;
@@ -42,7 +43,7 @@ input ENUM_TIMEFRAMES    time_stoh = PERIOD_M5;
 input int      periodMACDfast = 12;
 input int      periodMACDslow = 9;
 input int      periodMACDsignal = 26;
-input ENUM_TIMEFRAMES    time_macd = PERIOD_D1;
+input ENUM_TIMEFRAMES    time_macd = PERIOD_H1;
 //input int      время_таймера = 1;
 ulong          m_magic = 555;             // magic number
 int            handle_iStochastic;      // variable for storing the handle of the iStochastic indicator
@@ -169,12 +170,26 @@ void OnTick()
                m_symbol.Ask() > m_position.PriceOpen() - step_position * _Point)
                allow_step_buy = false;
          //   Print("buy ", allow_step_buy);
-
+         double tp = m_position.PriceOpen() + TP * _Point;
          if(m_position.Profit() > 0)
            {
-            if(SignalStohastic() == "sell")
+            if(SignalStohastic() == "sell" && m_symbol.Bid() > tp)
               {
                m_trade.PositionClose(m_position.Ticket());
+               continue;
+              }
+           }
+         else
+           {
+            double sl = m_position.PriceOpen() - SL * _Point;
+            if(m_symbol.Ask() < sl)
+              {
+               double v = m_position.Volume();
+               m_trade.PositionClose(m_position.Ticket());
+               if(signal_MACD == "sell")
+                  m_trade.Sell(v * ratio);
+               else
+                  m_trade.Buy(v * ratio);
                continue;
               }
            }
@@ -186,12 +201,26 @@ void OnTick()
             if(m_symbol.Bid() < m_position.PriceOpen() + step_position * _Point &&
                m_symbol.Bid() > m_position.PriceOpen() - step_position * _Point)
                allow_step_sell = false;
-
+         double tp = m_position.PriceOpen() - TP * _Point;
          if(m_position.Profit() > 0)
            {
-            if(SignalStohastic() == "buy")
+            if(SignalStohastic() == "buy" && m_symbol.Ask() < tp)
               {
                m_trade.PositionClose(m_position.Ticket());
+               continue;
+              }
+           }
+         else
+           {
+            double sl = m_position.PriceOpen() + SL * _Point;
+            if(m_symbol.Bid() > sl)
+              {
+               double v = m_position.Volume();
+               m_trade.PositionClose(m_position.Ticket());
+               if(signal_MACD == "buy")
+                  m_trade.Buy(v * ratio);
+               else
+                  m_trade.Sell(v * ratio);
                continue;
               }
            }
@@ -203,10 +232,9 @@ void OnTick()
    if(Allow_trading && allow_step)
      {
       if(signal_MACD == "buy" && SignalStohastic() == "buy" && allow_step_buy)
-         //if(Open_BUY && SignalStohastic() == "buy" && allow_step_buy)
         {
          // Print("buy");
-         if(!m_trade.Buy(volum, NULL, 0, m_symbol.Bid() - SL * _Point, m_symbol.Ask() + TP * _Point))
+         if(!m_trade.Buy(volum))//, NULL, 0, m_symbol.Bid() - SL * _Point, m_symbol.Ask() + TP * _Point))
             PrintFormat("Buy не открыт %d", m_trade.ResultRetcode());
          else
            {
@@ -220,10 +248,9 @@ void OnTick()
 
       // if(Open_SELL == true && SignalStohastic() == "sell")
       if(signal_MACD == "sell" && SignalStohastic() == "sell" && allow_step_sell)
-         //if(Open_SELL && SignalStohastic() == "sell" && allow_step_sell)
         {
          //  string ts = bool
-         if(!m_trade.Sell(volum, NULL, 0, m_symbol.Ask() + SL * _Point, m_symbol.Bid() - TP * _Point))
+         if(!m_trade.Sell(volum))//, NULL, 0, m_symbol.Ask() + SL * _Point, m_symbol.Bid() - TP * _Point))
             PrintFormat("Sell не открыт %d", m_trade.ResultRetcode());
          else
            {
@@ -332,7 +359,7 @@ string SignalMACD()
 //--- fill a part of the iStochasticBuffer array with values from the indicator buffer that has 0 index
    if(CopyBuffer(handle_iMACD, 0, 0, 10, Macd_m) < 0)
      {
-      //--- if the copying fails, tell the error code    
+      //--- if the copying fails, tell the error code
       PrintFormat("Failed to copy data from the iMacd, error code %d", GetLastError());
       //--- quit with zero result - it means that the indicator is considered as not calculated
       return "null";
@@ -352,4 +379,6 @@ string SignalMACD()
    return "null";
   }
 //+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+1111111111111111111111111111111111111111111111
 //+------------------------------------------------------------------+
