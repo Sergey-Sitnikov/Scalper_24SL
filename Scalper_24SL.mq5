@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                   Scalper_24.mq5 |
+//|                                             Scalper_24revers.mq5 |
 //|                                                              SSV |
 //|                                                   821654@mail.ru |
 //+------------------------------------------------------------------+
@@ -111,10 +111,10 @@ int OnInit()
       //--- the indicator is stopped early
       return(INIT_FAILED);
      }
-     
-       handle_iMACD_fast = iMACD(NULL, time_macd_fast, periodMACDfast, periodMACDslow, periodMACDsignal, PRICE_CLOSE);
+
+   handle_iMACD_fast = iMACD(NULL, time_macd_fast, periodMACDfast, periodMACDslow, periodMACDsignal, PRICE_CLOSE);
 //--- if the handle is not created
-   if(handle_iMACD == INVALID_HANDLE)
+   if(handle_iMACD_fast == INVALID_HANDLE)
      {
       //--- tell about the failure and output the error code
       PrintFormat("Failed to create handle of the iStochastic indicator for the symbol %s/%s, error code %d",
@@ -189,7 +189,8 @@ void OnTick()
          double tp = m_position.PriceOpen() + TP * _Point;
          if(m_position.Profit() > 0)
            {
-            if(SignalStohastic() == "sell" && m_symbol.Bid() > tp)
+            //if(SignalStohastic() == "sell" && m_symbol.Bid() > tp)
+            if(signal_MACD_fast == "sell" && m_symbol.Bid() > tp)
               {
                m_trade.PositionClose(m_position.Ticket());
                continue;
@@ -220,7 +221,8 @@ void OnTick()
          double tp = m_position.PriceOpen() - TP * _Point;
          if(m_position.Profit() > 0)
            {
-            if(SignalStohastic() == "buy" && m_symbol.Ask() < tp)
+            // if(SignalStohastic() == "buy" && m_symbol.Ask() < tp)
+            if(signal_MACD_fast == "buy" && m_symbol.Ask() < tp)
               {
                m_trade.PositionClose(m_position.Ticket());
                continue;
@@ -247,7 +249,7 @@ void OnTick()
 
    if(Allow_trading && allow_step)
      {
-   //   if(signal_MACD == "buy" && SignalStohastic() == "buy" && allow_step_buy)
+      //   if(signal_MACD == "buy" && SignalStohastic() == "buy" && allow_step_buy)
       if(signal_MACD == "buy" && signal_MACD_fast == "buy" && allow_step_buy)
         {
          // Print("buy");
